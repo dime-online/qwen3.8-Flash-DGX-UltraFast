@@ -494,14 +494,15 @@ def test_bf16_store_roundtrip():
         check(np.array_equal(got, w), f"store round-trips bf16 values, got {got}")
 
 
-def test_safetensors_roundtrip(tmp="_iter4_st_test.safetensors"):
+def test_safetensors_roundtrip():
     t = {
         "a.qweight": np.arange(64, dtype=np.int32).reshape(8, 8),
         "a.scales": np.linspace(0, 1, 16, dtype=np.float16).reshape(2, 8),
         "a.qzeros": R.qzeros_int4(256, 8, 128),
     }
-    R.write_safetensors(tmp, t)
-    try:
+    with tempfile.TemporaryDirectory() as d:
+        tmp = os.path.join(d, "_iter4_st_test.safetensors")
+        R.write_safetensors(tmp, t)
         hdr, base = R.read_st_header(tmp)
         check(set(hdr) == set(t), "safetensors header lists every tensor")
         for k, v in t.items():
@@ -511,8 +512,6 @@ def test_safetensors_roundtrip(tmp="_iter4_st_test.safetensors"):
             hdr["a.scales"]["dtype"] == "F16" and hdr["a.qweight"]["dtype"] == "I32",
             "safetensors dtypes are F16 / I32",
         )
-    finally:
-        os.remove(tmp)
 
 
 # --------------------------------------------------------------------------
